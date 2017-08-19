@@ -24,6 +24,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
 #include "inc/hw_gpio.h"
@@ -62,6 +64,16 @@
 //*****************************************************************************
 #define PWM_TOGGLE_DELAY        250
 
+
+//*****************************************************************************
+//
+// Global Duty Cycles
+//
+//****************************************************************************
+
+int8_t dutyMain, dutyRotor;
+
+
 //*****************************************************************************
 //
 // The queue that holds messages sent to the PWM task.
@@ -80,23 +92,29 @@ extern xSemaphoreHandle g_pUARTSemaphore;
 static void
 PWMTask(void *pvParameters)
 {
-   // portTickType ui32WakeTime;
-   // uint32_t ui32PWMToggPWMelay;
+    portTickType ui32WakeTime;
+    uint32_t ui32PWMToggleDelay;
     uint8_t i8Message;
 
     //
     // Get the current tick count.
     //
-    //ui32WakeTime = xTaskGetTickCount();
+    ui32WakeTime = xTaskGetTickCount();
 
     //
     // Loop forever.
     //
     while(1)
     {
+    	//*****************************************************************************
+    	//
+    	// MAIN ROTOR
+    	//
+    	//*****************************************************************************
         //
         // Read the next message, if available on queue.
         //
+
         if(xQueueReceive(g_pPWMQueue, &i8Message, 0) == pdPASS)
         {
             //
@@ -104,18 +122,12 @@ PWMTask(void *pvParameters)
             //
             if(i8Message == LEFT_BUTTON)
             {
-            	PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 200);
-            	PWMGenEnable(PWM0_BASE, PWM_GEN_3);
-            	PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
+            	dutyMain -= 10;
+            	dutyMain = (dutyMain < 2 ? 2 : dutyMain);
+            	ROM_PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 250*dutyMain/100);
+            	ROM_PWMGenEnable(PWM0_BASE, PWM_GEN_3);
+            	ROM_PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
 
-                /*
-                // Guard UART from concurrent access. Print the currently
-                // blinking PWM.
-                //
-                xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
-                UARTprintf("PWM %d is blinking. [R, G, B]\n", g_ui8ColorsIndx);
-                xSemaphoreGive(g_pUARTSemaphore);
-//              */
             }
 
             //
@@ -123,18 +135,12 @@ PWMTask(void *pvParameters)
             //
             if(i8Message == RIGHT_BUTTON)
             {
-            	PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 100);
+            	dutyMain += 10;
+            	dutyMain = (dutyMain > 98 ? 98 : dutyMain);
+            	PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 250*dutyMain/100);
             	PWMGenEnable(PWM0_BASE, PWM_GEN_3);
             	PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
 
-                /*
-                // Guard UART from concurrent access. Print the currently
-                // blinking PWM.
-                //
-                xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
-                UARTprintf("PWM %d is blinking. [R, G, B]\n", g_ui8ColorsIndx);
-                xSemaphoreGive(g_pUARTSemaphore);
-                 */
              }
         }
     }
@@ -152,50 +158,50 @@ PWMTaskInit(void)
     // Enable the PWM0 peripheral
     //
 
-    SysCtlPWMClockSet(SYSCTL_PWMDIV_1);
+	ROM_SysCtlPWMClockSet(SYSCTL_PWMDIV_1);
 
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
     //
     // Wait for the PWM0 module to be ready.
     //
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_PWM0))
+    while(!ROM_SysCtlPeripheralReady(SYSCTL_PERIPH_PWM0))
     {
     }
 
     //Pin Configure
-    GPIOPinConfigure(GPIO_PC5_M0PWM7);
-    GPIOPinConfigure(GPIO_PF1_M1PWM5);
-    GPIOPinTypePWM(GPIO_PORTC_BASE, GPIO_PIN_5);
-    GPIOPinTypePWM(GPIO_PORTF_BASE, GPIO_PIN_1);
+    ROM_GPIOPinConfigure(GPIO_PC5_M0PWM7); //PWM Main
+    ROM_GPIOPinConfigure(GPIO_PF1_M1PWM5); //PWM Tail
+    ROM_GPIOPinTypePWM(GPIO_PORTC_BASE, GPIO_PIN_5);
+    ROM_GPIOPinTypePWM(GPIO_PORTF_BASE, GPIO_PIN_1);
 
     // Configure the PWM generator for count down mode with immediate updates
     // to the parameters.
     //
-    PWMGenConfigure(PWM0_BASE, PWM_GEN_3, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
-    PWMGenConfigure(PWM1_BASE, PWM_GEN_2, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+    ROM_PWMGenConfigure(PWM0_BASE, PWM_GEN_3, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+    ROM_PWMGenConfigure(PWM1_BASE, PWM_GEN_2, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
     //
-    // Set the period. For a 50 KHz frequency, the period = 1/50,000, or 20
-    // microseconds. For a 20 MHz clock, this translates to 400 clock ticks.
-    // Use this value to set the period.
+    //Freq = 200 KHz
+    //Clock = 50MHz
+    //Clock Ticks = 50e6 / 200e3
     //
-    PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, 320);
-    PWMGenPeriodSet(PWM1_BASE, PWM_GEN_2, 320);
+    ROM_PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, 250);
+    ROM_PWMGenPeriodSet(PWM1_BASE, PWM_GEN_2, 250);
     //
     // Set the pulse width of PWM0 for a 25% duty cycle.
     //
-    PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 100);
-    PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 200);
+    ROM_PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 100);
+    ROM_PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 100);
     //
     // Start the timers in generator 0.
     //
-    PWMGenEnable(PWM0_BASE, PWM_GEN_3);
-    PWMGenEnable(PWM1_BASE, PWM_GEN_2);
+    ROM_PWMGenEnable(PWM0_BASE, PWM_GEN_3);
+    ROM_PWMGenEnable(PWM1_BASE, PWM_GEN_2);
     //
     // Enable the outputs.
     //
-    PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
-    PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT , true);
+    ROM_PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
+    ROM_PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT , true);
 
 
     //

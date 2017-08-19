@@ -3,6 +3,10 @@
 pwm_task.obj: ../pwm_task.c
 pwm_task.obj: C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdbool.h
 pwm_task.obj: C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdint.h
+pwm_task.obj: C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdio.h
+pwm_task.obj: C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/linkage.h
+pwm_task.obj: C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdarg.h
+pwm_task.obj: C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/string.h
 pwm_task.obj: c:/ti/TivaWare_C_Series-2.1.3.156/inc/hw_memmap.h
 pwm_task.obj: c:/ti/TivaWare_C_Series-2.1.3.156/inc/hw_types.h
 pwm_task.obj: c:/ti/TivaWare_C_Series-2.1.3.156/inc/hw_gpio.h
@@ -30,6 +34,10 @@ pwm_task.obj: c:/ti/TivaWare_C_Series-2.1.3.156/third_party/FreeRTOS/Source/incl
 ../pwm_task.c: 
 C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdbool.h: 
 C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdint.h: 
+C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdio.h: 
+C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/linkage.h: 
+C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/stdarg.h: 
+C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include/string.h: 
 c:/ti/TivaWare_C_Series-2.1.3.156/inc/hw_memmap.h: 
 c:/ti/TivaWare_C_Series-2.1.3.156/inc/hw_types.h: 
 c:/ti/TivaWare_C_Series-2.1.3.156/inc/hw_gpio.h: 

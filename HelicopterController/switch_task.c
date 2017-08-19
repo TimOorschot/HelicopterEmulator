@@ -47,7 +47,7 @@
 // The stack size for the display task.
 //
 //*****************************************************************************
-#define SWITCHTASKSTACKSIZE        128         // Stack size in words
+#define SWITCHTASKSTACKSIZE        256         // Stack size in words
 
 extern xQueueHandle  g_pPWMQueue;
 extern xSemaphoreHandle g_pUARTSemaphore;
@@ -103,7 +103,7 @@ SwitchTask(void *pvParameters)
                     // Guard UART from concurrent access.
                     //
                     xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
-                    printf("Left Button is pressed. \n");
+                    printf("Left Button is pressed.\n");
                     xSemaphoreGive(g_pUARTSemaphore);
                 }
                 else if((ui8CurButtonState & ALL_BUTTONS) == RIGHT_BUTTON)
@@ -114,7 +114,7 @@ SwitchTask(void *pvParameters)
                     // Guard UART from concurrent access.
                     //
                     xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
-                    printf("Right Button is pressed. \n");
+                    printf("Right Button is pressed.\n");
                     xSemaphoreGive(g_pUARTSemaphore);
                 }
 

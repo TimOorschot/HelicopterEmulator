@@ -134,19 +134,19 @@ ConfigureUART(void)
     //
     // Enable the GPIO Peripheral used by the UART.
     //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 
     //
     // Enable UART0
     //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
 
     //
     // Configure GPIO Pins for UART mode.
     //
-    GPIOPinConfigure(GPIO_PA0_U0RX);
-    GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    ROM_GPIOPinConfigure(GPIO_PA0_U0RX);
+    ROM_GPIOPinConfigure(GPIO_PA1_U0TX);
+    ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
     //
     // Use the internal 16MHz oscillator as the UART clock source.
@@ -163,46 +163,46 @@ ConfigureUART(void)
 //
 // ADC
 //
-//*****************************************************************************
+/*****************************************************************************
 void
 ConfigureADC(void) {
 
 
 	//ENABLE ADC0
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
-	while(!(SysCtlPeripheralReady(SYSCTL_PERIPH_ADC0)));
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+	while(!(ROM_SysCtlPeripheralReady(SYSCTL_PERIPH_ADC0)));
 
 	//ENABLE ADC PIN
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-	GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_4);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+	ROM_GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_4);
 
 	//ADC CONFIG
 	ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
-	ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_CH9 | ADC_CTL_IE |
+	ROM_ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_CH9 | ADC_CTL_IE |
 	                              ADC_CTL_END);
-	ADCSequenceEnable(ADC0_BASE, 3);
-	ADCIntClear(ADC0_BASE, 3);
+	ROM_ADCSequenceEnable(ADC0_BASE, 3);
+	ROM_ADCIntClear(ADC0_BASE, 3);
 }
 
 void
 vReadADC(void) {
 
 	//Trigger ADC
-	ADCProcessorTrigger(ADC0_BASE, 3);
+	ROM_ADCProcessorTrigger(ADC0_BASE, 3);
 
     // Wait for conversion to be completed.
-	while(!ADCIntStatus(ADC0_BASE, 3, false))
+	while(!ROM_ADCIntStatus(ADC0_BASE, 3, false))
 	{
 	}
 
 	// Clear the ADC interrupt flag.
-	ADCIntClear(ADC0_BASE, 3);
+	ROM_ADCIntClear(ADC0_BASE, 3);
 
 	// Read ADC Value.
-	ADCSequenceDataGet(ADC0_BASE, 3, Altitude);
+	ROM_ADCSequenceDataGet(ADC0_BASE, 3, Altitude);
 
 }
-
+*/
 //*****************************************************************************
 //
 // SSI
@@ -213,21 +213,21 @@ void
 ConfigureSSI (void) {
 	// Enable the SSI0 peripheral
 	//
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI3);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI3);
 	//
 	// Wait for the SSI0 module to be ready.
 	//
-	while(!SysCtlPeripheralReady(SYSCTL_PERIPH_SSI3))
+	while(!ROM_SysCtlPeripheralReady(SYSCTL_PERIPH_SSI3))
 	{
 	}
 	//
 	// Configure the SSI.
 	//
-	SSIConfigSetExpClk(SSI3_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 2000000, 8);
+	ROM_SSIConfigSetExpClk(SSI3_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 2000000, 8);
 	//
 	// Enable the SSI module.
 	//
-	SSIEnable(SSI3_BASE);
+	ROM_SSIEnable(SSI3_BASE);
 	//
 }
 
@@ -332,14 +332,14 @@ pwmSet(void) {
 //
 // INTERRUPTS
 //
-//*****************************************************************************
+/*****************************************************************************
 
 void
 IntGPIOb(void)
 {
-	if (Direction != GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_1))
+	if (Direction != ROM_GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_1))
 		Display();
-	Direction = GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_1);
+	Direction = ROM_GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_1);
 	GPIOIntClear(GPIO_PORTB_BASE, GPIO_PIN_0);
 }
 
@@ -348,15 +348,15 @@ ConfigureInts(void) {
 
 	GPIOIntRegister(GPIO_PORTB_BASE, IntGPIOb);
 
-	GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1 );
-	GPIOIntTypeSet(GPIO_PORTB_BASE, GPIO_PIN_0, GPIO_RISING_EDGE);
+	ROM_GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1 );
+	ROM_GPIOIntTypeSet(GPIO_PORTB_BASE, GPIO_PIN_0, GPIO_RISING_EDGE);
 
-	IntMasterEnable();
+	ROM_IntMasterEnable();
 
 	GPIOIntEnable(GPIO_PORTB_BASE, GPIO_PIN_0);
 }
 
-
+*/
 
 //*****************************************************************************
 //
@@ -381,14 +381,14 @@ Display(void) {
 int main (void) {
 	 // Set the clocking to run at 50 MHz from the PLL.
 	    //
-	    SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ |
+	    cgfcfbf(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ |
 	                       SYSCTL_OSC_MAIN);
 
-		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
-		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-		SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+	    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+	    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+	    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+	    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+	    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 
 
 	    //
