@@ -55,6 +55,10 @@
 #include "driverlib/uart.h"
 #include "utils/uartstdio.c"
 
+
+#include "yaw_task.h"
+#include "display_task.h"
+#include "adc_task.h"
 #include "pwm_task.h"
 #include "switch_task.h"
 #include "FreeRTOS.h"
@@ -64,16 +68,6 @@
 
 //*****************************************************************************
 //
-//! \addtogroup example_list
-//! <h1>Simple Project (project)</h1>
-//!
-//! A very simple example that can be used as a starting point for more complex
-//! projects.  Most notably, this project is fully TI BSD licensed, so any and
-//! all of the code (including the startup code) can be used as allowed by that
-//! license.
-//!
-//! The provided code simply toggles a GPIO using the Tiva Peripheral Driver
-//! Library.
 //
 //*****************************************************************************
 
@@ -83,17 +77,14 @@
 //
 //*****************************************************************************
 
-uint32_t Direction;
-uint32_t Altitude[1];
+uint8_t g_Direction;
+uint32_t g_Altitude[1];
+uint8_t g_Yaw = 0;
+int8_t g_dutyMain = 20;
+int8_t g_dutyRotor;
+
 
 #define RED_LED   GPIO_PIN_1
-
-//*****************************************************************************
-//
-// MUTEX
-//
-//*****************************************************************************
-xSemaphoreHandle g_pUARTSemaphore;
 
 
 //*****************************************************************************
@@ -127,37 +118,6 @@ __error__(char *pcFilename, uint32_t ui32Line)
 }
 #endif
 
-
-void
-ConfigureUART(void)
-{
-    //
-    // Enable the GPIO Peripheral used by the UART.
-    //
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-
-    //
-    // Enable UART0
-    //
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-
-    //
-    // Configure GPIO Pins for UART mode.
-    //
-    ROM_GPIOPinConfigure(GPIO_PA0_U0RX);
-    ROM_GPIOPinConfigure(GPIO_PA1_U0TX);
-    ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-
-    //
-    // Use the internal 16MHz oscillator as the UART clock source.
-    //
-    UARTClockSourceSet(UART0_BASE, UART_CLOCK_PIOSC);
-
-    //
-    // Initialize the UART for console I/O.
-    //
-    UARTStdioConfig(0, 115200, 16000000);
-}
 
 //*****************************************************************************
 //
@@ -202,7 +162,7 @@ vReadADC(void) {
 	ROM_ADCSequenceDataGet(ADC0_BASE, 3, Altitude);
 
 }
-*/
+
 //*****************************************************************************
 //
 // SSI
@@ -245,88 +205,7 @@ sendSSI(char *pcChars) {
 
 }
 
-//*****************************************************************************
-//
-// PWM
-//
-/*****************************************************************************
 
-void
-ConfigurePWM(void) {
-	//
-	// Enable the PWM0 peripheral
-	//
-
-	SysCtlPWMClockSet(SYSCTL_PWMDIV_1);
-
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
-	//
-	// Wait for the PWM0 module to be ready.
-	//
-	while(!SysCtlPeripheralReady(SYSCTL_PERIPH_PWM0))
-	{
-	}
-
-	//Pin Configure
-	GPIOPinConfigure(GPIO_PC5_M0PWM7);
-	GPIOPinConfigure(GPIO_PF1_M1PWM5);
-	GPIOPinTypePWM(GPIO_PORTC_BASE, GPIO_PIN_5);
-	GPIOPinTypePWM(GPIO_PORTF_BASE, GPIO_PIN_1);
-
-	// Configure the PWM generator for count down mode with immediate updates
-	// to the parameters.
-	//
-	PWMGenConfigure(PWM0_BASE, PWM_GEN_3, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
-	PWMGenConfigure(PWM1_BASE, PWM_GEN_2, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
-	//
-	// Set the period. For a 50 KHz frequency, the period = 1/50,000, or 20
-	// microseconds. For a 20 MHz clock, this translates to 400 clock ticks.
-	// Use this value to set the period.
-	//
-	PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, 320);
-	PWMGenPeriodSet(PWM1_BASE, PWM_GEN_2, 320);
-	//
-	// Set the pulse width of PWM0 for a 25% duty cycle.
-	//
-	PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 100);
-	PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 100);
-	//
-	// Start the timers in generator 0.
-	//
-	PWMGenEnable(PWM0_BASE, PWM_GEN_3);
-	PWMGenEnable(PWM1_BASE, PWM_GEN_2);
-	//
-	// Enable the outputs.
-	//
-	PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
-	PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT , true);
-}
-
-//NEED TO UPDATE
-void
-pwmSet(void) {
-
-	// Set the period. For a 50 KHz frequency, the period = 1/50,000, or 20
-	// microseconds. For a 20 MHz clock, this translates to 400 clock ticks.
-	// Use this value to set the period.
-	//
-	PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, 320);
-	//
-	// Set the pulse width of PWM0 for a 25% duty cycle.
-	//
-	PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 100);
-	//
-	// Start the timers in generator 0.
-	//
-	PWMGenEnable(PWM0_BASE, PWM_GEN_3);
-	//
-	// Enable the outputs.
-	//
-	PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
-}
-
-*/
 
 //*****************************************************************************
 //
@@ -362,13 +241,36 @@ ConfigureInts(void) {
 //
 // INFORMATION DISPLAY
 //
-//*****************************************************************************
+/*****************************************************************************
 void
 Display(void) {
 	// Display the AIN0 (PE4) digital value on the console.
 	printf("Altitude = %4d\r \n", Altitude[0]);
 	printf(Direction && 0x02 ? "Direction = CCW\n" : "Direction = CW\n" );
 }
+*/
+
+
+//*****************************************************************************
+//
+// Jono's interrupt tests
+//
+/****************************************************************************
+
+xSemaphoreHandle binary_sem;
+void one_sec_isr(void){
+	xSemaphoreGiveFromISR(binary_sem,NULL);
+}
+
+void sem_task(void *p){
+	while(1){
+		if(xSemaphoreTake(binary_sem, 9999999)){
+			puts("Ticks");
+		}
+	}
+}
+*/
+
 
 
 //*****************************************************************************
@@ -381,7 +283,7 @@ Display(void) {
 int main (void) {
 	 // Set the clocking to run at 50 MHz from the PLL.
 	    //
-	    cgfcfbf(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ |
+	    (SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ |
 	                       SYSCTL_OSC_MAIN);
 
 	    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
@@ -394,7 +296,6 @@ int main (void) {
 	    //
 	    // Initialize the UART and configure it for 115,200, 8-N-1 operation.
 	    //
-	    ConfigureUART();
 
 	    //
 	    // Print demo introduction.
@@ -404,9 +305,38 @@ int main (void) {
 	    printf( "You're good! \n");
 
 	    //
-	    // Create a mutex to guard the UART.
+	    // Create the Yaw task.
 	    //
-	    g_pUARTSemaphore = xSemaphoreCreateMutex();
+	    if(YawTaskInit() != 0)
+	    {
+
+	    	while(1)
+	    	{
+	    	}
+	     }
+
+	    //
+	   	// Create the Display task.
+	   	//
+	   	if(DisplayTaskInit() != 0)
+	   	{
+
+	   		while(1)
+	   	    {
+	   	    }
+	   	}
+
+
+	    //
+	   	// Create the ADC task.
+	   	//
+	   	if(ADCTaskInit() != 0)
+	   	{
+
+	   	    while(1)
+	   	    {
+	   	    }
+	   	}
 
 	    //
 	    // Create the PWM task.
@@ -418,6 +348,8 @@ int main (void) {
 	    	{
 	    	}
 	    }
+
+
 
 	    //
 	    // Create the switch task.
@@ -445,23 +377,4 @@ int main (void) {
 	    }
 }
 
-
-	 /*
-    while(1)
-    {
-    	pwmSet();
-
-    	//Get Height Value
-    	vReadADC();
-    	//Display();
-
-    	if (displayDelay == 1000) {
-    		Display();
-    		displayDelay = 0;
-    	}
-    	displayDelay++;
-
-    }
-
-    */
 

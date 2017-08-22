@@ -34,6 +34,9 @@
 #include "driverlib/rom.h"
 #include "drivers/buttons.h"
 #include "utils/uartstdio.h"
+
+#include "yaw_task.h"
+#include "display_task.h"
 #include "switch_task.h"
 #include "pwm_task.h"
 #include "priorities.h"
@@ -61,7 +64,7 @@ static void
 SwitchTask(void *pvParameters)
 {
     portTickType ui16LastTime;
-    uint32_t ui32SwitchDelay = 25;
+    uint32_t ui32SwitchDelay = 20;
     uint8_t ui8CurButtonState, ui8PrevButtonState;
     uint8_t ui8Message;
 
@@ -98,24 +101,10 @@ SwitchTask(void *pvParameters)
                 if((ui8CurButtonState & ALL_BUTTONS) == LEFT_BUTTON)
                 {
                     ui8Message = LEFT_BUTTON;
-
-                    //
-                    // Guard UART from concurrent access.
-                    //
-                    xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
-                    printf("Left Button is pressed.\n");
-                    xSemaphoreGive(g_pUARTSemaphore);
                 }
                 else if((ui8CurButtonState & ALL_BUTTONS) == RIGHT_BUTTON)
                 {
                     ui8Message = RIGHT_BUTTON;
-
-                    //
-                    // Guard UART from concurrent access.
-                    //
-                    xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
-                    printf("Right Button is pressed.\n");
-                    xSemaphoreGive(g_pUARTSemaphore);
                 }
 
                 //
@@ -128,7 +117,9 @@ SwitchTask(void *pvParameters)
                     // Error. The queue should never be full. If so print the
                     // error message on UART and wait for ever.
                     //
+                	xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
                     printf("\nQueue full. This should never happen.\n");
+                    xSemaphoreGive(g_pUARTSemaphore);
                     while(1)
                     {
                     }

@@ -1,6 +1,6 @@
 //*****************************************************************************
 //
-// priorities.h - Priorities for the various FreeRTOS tasks.
+// ADC_task.h - Prototypes for the ADC task.
 //
 // Copyright (c) 2012-2016 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
@@ -22,21 +22,14 @@
 //
 //*****************************************************************************
 
-#ifndef __PRIORITIES_H__
-#define __PRIORITIES_H__
+#ifndef __ADC_TASK_H__
+#define __ADC_TASK_H__
 
 //*****************************************************************************
 //
-// The priorities of the various tasks. (Highest priority first)
+// Prototypes for the ADC task.
 //
 //*****************************************************************************
+extern uint32_t ADCTaskInit(void);
 
-#define PRIORITY_YAW_TASK    	5
-#define PRIORITY_SWITCH_TASK    4
-#define PRIORITY_ADC_TASK    	3
-#define PRIORITY_PWM_TASK       1
-#define PRIORITY_DISPLAY_TASK   1
-
-
-
-#endif // __PRIORITIES_H__
+#endif // __ADC_TASK_H__

@@ -10,10 +10,13 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
+"./adc_task.obj" \
+"./display_task.obj" \
 "./project.obj" \
 "./pwm_task.obj" \
 "./startup_ccs.obj" \
 "./switch_task.obj" \
+"./yaw_task.obj" \
 "./drivers/buttons.obj" \
 "./drivers/rgb.obj" \
 "./third_party/FreeRTOS/Source/list.obj" \
@@ -162,7 +165,7 @@ all: HelicopterController.out
 HelicopterController.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Linker'
-	"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -O2 --advice:power=all -g --gcc --define=ccs="ccs" --define=PART_TM4C123GH6PM --define=TARGET_IS_TM4C123_RB1 --diag_wrap=off --diag_warning=225 --display_error_number --gen_func_subsections=on --printf_support=full --ual -z -m"freertos_demo_ccs.map" --heap_size=512 --stack_size=512 -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include" --reread_libs --display_error_number --diag_wrap=off --warn_sections --xml_link_info="HelicopterController_linkInfo.xml" --rom_model -o "HelicopterController.out" $(ORDERED_OBJS)
+	"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -O2 --advice:power=all -g --gcc --define=ccs="ccs" --define=PART_TM4C123GH6PM --define=TARGET_IS_TM4C123_RB1 --diag_wrap=off --diag_warning=225 --display_error_number --gen_func_subsections=on --printf_support=full --ual -z -m"freertos_demo_ccs.map" --heap_size=1024 --stack_size=1024 -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_15.12.1.LTS/include" --reread_libs --display_error_number --diag_wrap=off --warn_sections --xml_link_info="HelicopterController_linkInfo.xml" --rom_model -o "HelicopterController.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
@@ -177,8 +180,8 @@ HelicopterController.bin: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)$(BIN_OUTPUTS__QUOTED)
-	-$(RM) "project.d" "pwm_task.d" "startup_ccs.d" "switch_task.d" "drivers\buttons.d" "drivers\rgb.d" "third_party\FreeRTOS\Source\list.d" "third_party\FreeRTOS\Source\queue.d" "third_party\FreeRTOS\Source\tasks.d" "third_party\FreeRTOS\Source\portable\CCS\ARM_CM4F\port.d" "third_party\FreeRTOS\Source\portable\MemMang\heap_2.d" "utils\ustdlib.d" 
-	-$(RM) "project.obj" "pwm_task.obj" "startup_ccs.obj" "switch_task.obj" "drivers\buttons.obj" "drivers\rgb.obj" "third_party\FreeRTOS\Source\list.obj" "third_party\FreeRTOS\Source\queue.obj" "third_party\FreeRTOS\Source\tasks.obj" "third_party\FreeRTOS\Source\portable\CCS\ARM_CM4F\port.obj" "third_party\FreeRTOS\Source\portable\CCS\ARM_CM4F\portasm.obj" "third_party\FreeRTOS\Source\portable\MemMang\heap_2.obj" "utils\ustdlib.obj" 
+	-$(RM) "adc_task.d" "display_task.d" "project.d" "pwm_task.d" "startup_ccs.d" "switch_task.d" "yaw_task.d" "drivers\buttons.d" "drivers\rgb.d" "third_party\FreeRTOS\Source\list.d" "third_party\FreeRTOS\Source\queue.d" "third_party\FreeRTOS\Source\tasks.d" "third_party\FreeRTOS\Source\portable\CCS\ARM_CM4F\port.d" "third_party\FreeRTOS\Source\portable\MemMang\heap_2.d" "utils\ustdlib.d" 
+	-$(RM) "adc_task.obj" "display_task.obj" "project.obj" "pwm_task.obj" "startup_ccs.obj" "switch_task.obj" "yaw_task.obj" "drivers\buttons.obj" "drivers\rgb.obj" "third_party\FreeRTOS\Source\list.obj" "third_party\FreeRTOS\Source\queue.obj" "third_party\FreeRTOS\Source\tasks.obj" "third_party\FreeRTOS\Source\portable\CCS\ARM_CM4F\port.obj" "third_party\FreeRTOS\Source\portable\CCS\ARM_CM4F\portasm.obj" "third_party\FreeRTOS\Source\portable\MemMang\heap_2.obj" "utils\ustdlib.obj" 
 	-$(RM) "third_party\FreeRTOS\Source\portable\CCS\ARM_CM4F\portasm.d" 
 	-@echo 'Finished clean'
 	-@echo ' '

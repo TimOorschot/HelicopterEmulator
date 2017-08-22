@@ -35,6 +35,8 @@
 #include "driverlib/pwm.h"
 #include "driverlib/pin_map.h"
 #include "driverlib/sysctl.h"
+
+#include "display_task.h"
 #include "PWM_task.h"
 #include "priorities.h"
 #include "FreeRTOS.h"
@@ -47,7 +49,8 @@
 // The stack size for the PWM Task..
 //
 //*****************************************************************************
-#define PWMTASKSTACKSIZE        128         // Stack size in words
+#define PWMTASKSTACKSIZE        256         // Stack size in words
+#define	DISPLAY 0x00000001
 
 //*****************************************************************************
 //
@@ -71,7 +74,7 @@
 //
 //****************************************************************************
 
-int8_t dutyMain, dutyRotor;
+extern int8_t g_dutyMain, g_dutyRotor;
 
 
 //*****************************************************************************
@@ -79,7 +82,9 @@ int8_t dutyMain, dutyRotor;
 // The queue that holds messages sent to the PWM task.
 //
 //*****************************************************************************
+
 xQueueHandle g_pPWMQueue;
+extern xQueueHandle  g_pDisplayQueue;
 
 extern xSemaphoreHandle g_pUARTSemaphore;
 
@@ -92,14 +97,8 @@ extern xSemaphoreHandle g_pUARTSemaphore;
 static void
 PWMTask(void *pvParameters)
 {
-    portTickType ui32WakeTime;
-    uint32_t ui32PWMToggleDelay;
     uint8_t i8Message;
-
-    //
-    // Get the current tick count.
-    //
-    ui32WakeTime = xTaskGetTickCount();
+    uint8_t i8DisplayMessage;
 
     //
     // Loop forever.
@@ -122,11 +121,27 @@ PWMTask(void *pvParameters)
             //
             if(i8Message == LEFT_BUTTON)
             {
-            	dutyMain -= 10;
-            	dutyMain = (dutyMain < 2 ? 2 : dutyMain);
-            	ROM_PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 250*dutyMain/100);
+            	g_dutyMain -= 10;
+            	g_dutyMain = (g_dutyMain == 88 ? 90 : g_dutyMain); 	//If duty cycle max next decrement is to 90%
+            	g_dutyMain = (g_dutyMain < 2 ? 2 : g_dutyMain);
+            	ROM_PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 1000*g_dutyMain/100);
             	ROM_PWMGenEnable(PWM0_BASE, PWM_GEN_3);
             	ROM_PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
+            	i8DisplayMessage = DISPLAY;
+
+            	if(xQueueSend(g_pDisplayQueue, &i8DisplayMessage, portMAX_DELAY) !=
+            	   pdPASS) {
+            		//
+            		// Error. The queue should never be full. If so print the
+            		// error message on UART and wait for ever.
+            		//
+            		xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
+            		printf("\nQueue full. This should never happen.\n");
+            		xSemaphoreGive(g_pUARTSemaphore);
+            		while(1)
+            		{
+            		}
+            	}
 
             }
 
@@ -135,15 +150,31 @@ PWMTask(void *pvParameters)
             //
             if(i8Message == RIGHT_BUTTON)
             {
-            	dutyMain += 10;
-            	dutyMain = (dutyMain > 98 ? 98 : dutyMain);
-            	PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 250*dutyMain/100);
+            	g_dutyMain += 10;
+            	g_dutyMain = (g_dutyMain == 12 ? 10 : g_dutyMain); 	//If duty cycle at min next increment is to 10%
+            	g_dutyMain = (g_dutyMain > 98 ? 98 : g_dutyMain);		//Set max duty cycle to 98%
+            	PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 1000*g_dutyMain/100);
             	PWMGenEnable(PWM0_BASE, PWM_GEN_3);
             	PWMOutputState(PWM0_BASE, PWM_OUT_7_BIT , true);
+            	i8DisplayMessage = DISPLAY;
 
-             }
+            	if(xQueueSend(g_pDisplayQueue, &i8DisplayMessage, portMAX_DELAY) !=
+            	   pdPASS) {
+            		//
+            		// Error. The queue should never be full. If so print the
+            		// error message on UART and wait for ever.
+            		//
+            		xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
+            		printf("\nQueue full. This should never happen.\n");
+            		xSemaphoreGive(g_pUARTSemaphore);
+            		while(1)
+            		{
+            		}
+
+            	}
+            }
         }
-    }
+   }
 }
 
 //*****************************************************************************
@@ -158,7 +189,7 @@ PWMTaskInit(void)
     // Enable the PWM0 peripheral
     //
 
-	ROM_SysCtlPWMClockSet(SYSCTL_PWMDIV_1);
+	ROM_SysCtlPWMClockSet(SYSCTL_PWMDIV_64);
 
 	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM0);
 	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_PWM1);
@@ -181,17 +212,17 @@ PWMTaskInit(void)
     ROM_PWMGenConfigure(PWM0_BASE, PWM_GEN_3, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
     ROM_PWMGenConfigure(PWM1_BASE, PWM_GEN_2, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
     //
-    //Freq = 200 KHz
+    //Freq = 200 Hz
     //Clock = 50MHz
-    //Clock Ticks = 50e6 / 200e3
+    //Clock Ticks = 50e6 / 200
     //
-    ROM_PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, 250);
-    ROM_PWMGenPeriodSet(PWM1_BASE, PWM_GEN_2, 250);
+    ROM_PWMGenPeriodSet(PWM0_BASE, PWM_GEN_3, 1000);
+    ROM_PWMGenPeriodSet(PWM1_BASE, PWM_GEN_2, 1000);
     //
     // Set the pulse width of PWM0 for a 25% duty cycle.
     //
-    ROM_PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 100);
-    ROM_PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 100);
+    ROM_PWMPulseWidthSet(PWM0_BASE, PWM_OUT_7, 200);
+    ROM_PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 200);
     //
     // Start the timers in generator 0.
     //
