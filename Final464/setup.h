@@ -1,13 +1,12 @@
 /*
- * setup.h
+ * Authors: Lakshay Duggal, Tim Oorschot
+ * setup.h - Initialise and configure peripheals
  *
- *  Created on: Aug 20, 2017
- *      Author: ldu30
  */
 
 #ifndef SETUP_H_
 #define SETUP_H_
 
-void setupInit(void) ;
+void __init__(void);
 
 #endif /* SETUP_H_ */

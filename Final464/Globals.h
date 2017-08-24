@@ -1,8 +1,6 @@
 /*
- * Globals.h
- *
- *  Created on: Aug 20, 2017
- *      Author: ldu30
+ * Authors: Lakshay Duggal, Tim Oorschot
+ * globals.h - Initialises the struct and variables that are to be used by main.c
  */
 
 #ifndef GLOBALS_H_
@@ -11,11 +9,13 @@
 
 #include <stdint.h>
 
-struct height_s { //structure definition
+// Structure definition
+struct height_s {
 	float current;
 	float previous;
 };
 
+// Variables for interrupts
 uint32_t risingMain;
 uint32_t fallingMain;
 uint32_t prevRisingMain;

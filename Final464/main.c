@@ -1,3 +1,8 @@
+/*
+ * Authors: Lakshay Duggal, Tim Oorschot
+ * main.c - Combines functions to calculate and display functions of the helicopter.
+ */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,23 +14,23 @@
 #include "setup.h"
 #include "interrupts.h"
 #include "sendData.h"
-//#include ""
+
 
 int main() {
 
-	//ConfigureUART();
-	setupInit();
+	// Initialise peripherials
+	__init__();
 
-	UARTprintf("test hi\n");
+	UARTprintf("test \n"); // Test UART
 
-	//Main Rotor
-
+	// Set initial values for PWM
 	PWM.current = 0;
 	PWM.previous = 0;
 
 	PWMTail.current = 0;
 	PWMTail.previous = 0;
 
+	// Creates structs to be used in functions.
 	struct height_s height;
 	height.current = 0;
 	height.previous = 0;
@@ -40,33 +45,38 @@ int main() {
 
 	int i = 0;
 
-	int duck;
-	int cat;
-	int goose;
-	int mouse;
+	// Initialise ints for UART
+	int heightInt;
+	int PWMInt;
+	int yawDegInt;
+	int PWMTailInt;
 
 	while(1) {
 
+		// Slow down calculation speed
 		if (i>12500) {
 
+			// Calculate variables
+			height = claculateHeight(PWM);
 
-		//PWMTail.current = getTailPWM();
-		height = claculateHeight(PWM);
-		sendHeight(height);
+			sendHeight(height);
 
-		yaw = calculateYaw(PWM, PWMTail);
+			yaw = calculateYaw(PWM, PWMTail);
 
-		yawDeg = referncePoint(yaw);
-		generateQuad(yawDeg);
+			// Check if current angle is at or past the reference point.
+			yawDeg = referncePoint(yaw); // Also converts to degrees
+			generateQuad(yawDeg);
 
-		duck = height.current;
-		goose = PWM.current;
-		cat  = yaw.current*180/pi;
-		mouse = PWMTail.current;
+			// Convert to ints
+			heightInt = height.current;
+			PWMInt = PWM.current;
+			yawDegInt  = yawDeg.current;
+			PWMTailInt = PWMTail.current;
 
+			// Print values using UART
+			UARTprintf("height = %d (%d), yaw = %d (%d) \n", heightInt, PWMInt, yawDegInt, PWMTailInt);
 
-		UARTprintf("height = %d (%d), yaw = %d (%d) \n", duck, goose, cat, mouse);
-		i=0;
+			i = 0;
 		}
 
 		else {
