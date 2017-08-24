@@ -1,5 +1,6 @@
 #include "Globals.h"
 
+
 /*
  * Tail.c
  *
@@ -8,6 +9,7 @@
  */
 
 float step = 0.01;
+float piDog = 3.141592654;
 
 
 struct height_s  mainRotor_f(struct height_s mainRotor, struct height_s PWM) //does this need the argument Mainrotor?
@@ -41,15 +43,24 @@ struct height_s mainForcePWM_f (struct height_s mainRotor) //LUTOne
 	float M_h = 0.0853;
 
 	struct height_s result;
+	float rotorCurrent = mainRotor.current;
+	float rotorPrevious = mainRotor.previous;
+
+	if (rotorCurrent > 80) {
+		rotorCurrent = 80;
+	}
+	if (rotorPrevious > 80) {
+		rotorPrevious = 80;
+	}
 
 	for ( i = 0; i < 17; i++) {
-		if (mainRotor.current <= LUT_PWM1[i+1] && mainRotor.current >= LUT_PWM1[i]) {
+		if (rotorCurrent <= LUT_PWM1[i+1] && rotorCurrent >= LUT_PWM1[i]) {
 			// Interpelating between values
-			LUTCurrent = ((mainRotor.current - LUT_PWM1[i])/5)*(LUT_PWM2[i+1]-LUT_PWM2[i]) + LUT_PWM2[i];
+			LUTCurrent = ((rotorCurrent - LUT_PWM1[i])/5)*(LUT_PWM2[i+1]-LUT_PWM2[i]) + LUT_PWM2[i];
 		}
-		if (mainRotor.previous <= LUT_PWM1[i+1] && mainRotor.previous >= LUT_PWM1[i]) {
+		if (rotorPrevious <= LUT_PWM1[i+1] && rotorPrevious >= LUT_PWM1[i]) {
 			// Interpelating between values
-			LUTPrevious = ((mainRotor.previous - LUT_PWM1[i])/5)*(LUT_PWM2[i+1]-LUT_PWM2[i]) + LUT_PWM2[i];
+			LUTPrevious = ((rotorPrevious - LUT_PWM1[i])/5)*(LUT_PWM2[i+1]-LUT_PWM2[i]) + LUT_PWM2[i];
 		}
 	}
 
@@ -183,14 +194,24 @@ struct height_s netTorque_f (struct height_s tailRotor, struct height_s mainMoto
 
 	struct height_s result;
 
+	float tailCurrent = tailRotor.current;
+	float tailPrevious = tailRotor.previous;
+
+	if (tailCurrent > 75) {
+		tailCurrent = 75;
+	}
+	if (tailPrevious > 75) {
+		tailPrevious = 75;
+	}
+
 	for ( i = 0; i < 16; i++) {
-		if (tailRotor.current <= LUT_Tail1[i+1] && tailRotor.current >= LUT_Tail1[i]) {
+		if (tailCurrent <= LUT_Tail1[i+1] && tailCurrent >= LUT_Tail1[i]) {
 			// Interpelating between values
-			LUTCurrent = ((tailRotor.current - LUT_Tail1[i])/5)*(LUT_Tail2[i+1]-LUT_Tail2[i]) + LUT_Tail2[i];
+			LUTCurrent = ((tailCurrent - LUT_Tail1[i])/5)*(LUT_Tail2[i+1]-LUT_Tail2[i]) + LUT_Tail2[i];
 		}
-		if (tailRotor.previous <= LUT_Tail1[i+1] && tailRotor.previous >= LUT_Tail1[i]) {
+		if (tailPrevious <= LUT_Tail1[i+1] && tailPrevious >= LUT_Tail1[i]) {
 			// Interpelating between values
-			LUTPrevious = ((tailRotor.previous - LUT_Tail1[i])/5)*(LUT_Tail2[i+1]-LUT_Tail2[i]) + LUT_Tail2[i];
+			LUTPrevious = ((tailPrevious - LUT_Tail1[i])/5)*(LUT_Tail2[i+1]-LUT_Tail2[i]) + LUT_Tail2[i];
 		}
 	}
 
@@ -227,6 +248,14 @@ struct height_s yaw_f (struct height_s yaw, struct height_s heliBody)
 	yawCurrent = 0.5 * (step * (heliBody.current + heliBody.previous) + 2 * yaw.previous);
 	result.previous = yaw.current;
 	result.current = yawCurrent;
+
+
+	result.current = result.current;
+	result.previous = result.current;
+		if ((result.current >= 2 * piDog) || (result.current <= -2 * piDog)){
+			result.current = 0;
+			result.previous = 0;
+		}
 
 	return result;
 }

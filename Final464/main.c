@@ -3,143 +3,18 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-
-#include <math.h> //not sure if necessary
-#include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
-#include "driverlib/gpio.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/rom.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/uart.h"
 #include "utils/uartstdio.h"
-#include "driverlib/timer.h"
-#include "driverlib/interrupt.h"
 #include "Globals.h"
 #include "HeightandTail.h"
+#include "setup.h"
+#include "interrupts.h"
+#include "sendData.h"
+//#include ""
 
-uint32_t risingMain;
-uint32_t fallingMain;
-uint32_t prevRisingMain;
+int main() {
 
-uint32_t risingTail;
-uint32_t fallingTail;
-uint32_t prevRisingTail;
-
-struct height_s PWM;
-struct height_s PWMTail;
-
-float pi = 3.141592654;
-
-void
-ConfigureUART(void)
-{
-    //
-    // Enable the GPIO Peripheral used by the UART.
-    //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-    //
-    // Enable UART0    //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-
-    //
-    // Configure GPIO Pins for UART mode.
-    //
-    GPIOPinConfigure(GPIO_PA0_U0RX);
-    GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-
-    //
-    // Use the internal 16MHz oscillator as the UART clock source.
-    //
-    UARTClockSourceSet(UART0_BASE, UART_CLOCK_PIOSC);
-
-    //
-    // Initialize the UART for console I/O.
-    //
-    UARTStdioConfig(0, 9600, 16000000);
-}
-
-
-void mainPWMInt(void)
-{
-	uint32_t temp = TimerValueGet(TIMER0_BASE, TIMER_A);
-	int pinHigh = GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_1);
-
-	if (pinHigh) {
-		prevRisingMain = risingMain;
-		risingMain = temp;
-
-		PWM.previous = PWM.current;
-		PWM.current = (abs(prevRisingMain - fallingMain)*100)/(abs(prevRisingMain - risingMain));
-
-	}
-	else {
-		fallingMain = temp;
-
-	}
-	GPIOIntClear(GPIO_PORTF_BASE, GPIO_PIN_1);
-}
-
-void tailPWMInt (void)
-{
-	uint32_t temp = TimerValueGet(TIMER1_BASE, TIMER_A);
-	int pinHigh = GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_0);
-
-	if (pinHigh) {
-		prevRisingTail = risingTail;
-		risingTail = temp;
-
-		PWMTail.previous = PWMTail.current;
-		PWMTail.current = (abs(prevRisingTail - fallingTail)*100)/(abs(prevRisingTail - risingTail));
-
-	}
-	else {
-		fallingTail = temp;
-
-	}
-	GPIOIntClear(GPIO_PORTB_BASE, GPIO_PIN_0);
-}
-
-void
-ConfigureInts(void)
-{
-
-	GPIOIntRegister(GPIO_PORTF_BASE, mainPWMInt);
-	GPIOIntRegister(GPIO_PORTB_BASE, tailPWMInt);
-	GPIOIntTypeSet(GPIO_PORTF_BASE, GPIO_PIN_1, GPIO_BOTH_EDGES);
-	GPIOIntTypeSet(GPIO_PORTB_BASE, GPIO_PIN_0, GPIO_BOTH_EDGES);
-
-	IntMasterEnable();
-	GPIOIntEnable(GPIO_PORTF_BASE, GPIO_PIN_1);
-	GPIOIntEnable(GPIO_PORTB_BASE, GPIO_PIN_0);
-
-}
-
- int main() {
-
-
-	SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ |
-            SYSCTL_OSC_MAIN);
-
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-	GPIOPinTypeGPIOInput(GPIO_PORTF_BASE, GPIO_PIN_1);
-	GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, GPIO_PIN_0);
-	GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_2|GPIO_PIN_3);
-
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-	TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
-	TimerLoadSet(TIMER0_BASE, TIMER_A, SysCtlClockGet());
-	TimerEnable(TIMER0_BASE, TIMER_A);
-
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
-	TimerLoadSet(TIMER1_BASE, TIMER_A, SysCtlClockGet());
-	TimerEnable(TIMER1_BASE, TIMER_A);
-
-	ConfigureUART();
-	ConfigureInts();
+	//ConfigureUART();
+	setupInit();
 
 	UARTprintf("test hi\n");
 
@@ -159,8 +34,11 @@ ConfigureInts(void)
 	yaw.current = 0;
 	yaw.previous = 0;
 
+	struct height_s yawDeg;
+	yawDeg.current = 0;
+	yawDeg.previous = 0;
+
 	int i = 0;
-	int j = 0;
 
 	int duck;
 	int cat;
@@ -169,51 +47,30 @@ ConfigureInts(void)
 
 	while(1) {
 
-		if (i<31250) {
+		if (i>12500) {
+
 
 		//PWMTail.current = getTailPWM();
 		height = claculateHeight(PWM);
+		sendHeight(height);
 
 		yaw = calculateYaw(PWM, PWMTail);
-		uint8_t yawIntcurrent = (yaw.current*180)/pi;
-		uint8_t yawIntPrevious = (yaw.previous*180)/pi;
 
-
-		if (yawIntcurrent % (360 / 112) == 0) {
-			if (yawIntPrevious < yawIntcurrent) {
-				GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2, 1);
-				int j = 0;
-				while(j < 1000){
-					j++;
-				}
-				GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_3, 1);
-			}
-			else if (yawIntPrevious > yawIntcurrent) {
-				GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_3, 1);
-				int j = 0;
-				while(j < 1000){
-					j++;
-				}
-				GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2, 1);
-
-			}
-		}
-		else if (yawIntcurrent % (360 / 112) != 0) {
-			GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_3, 0);
-			GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2, 0);
-		}
+		yawDeg = referncePoint(yaw);
+		generateQuad(yawDeg);
 
 		duck = height.current;
 		goose = PWM.current;
-		cat  = yaw.current;
+		cat  = yaw.current*180/pi;
 		mouse = PWMTail.current;
 
-		UARTprintf("height = %d (%d), yaw = %d (%d) \n", duck, goose, cat, mouse);
-		i++;
 
+		UARTprintf("height = %d (%d), yaw = %d (%d) \n", duck, goose, cat, mouse);
+		i=0;
 		}
+
 		else {
-			i = 0;
+			i++;
 		}
 	}
 }

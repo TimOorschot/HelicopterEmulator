@@ -11,7 +11,10 @@ GEN_CMDS__FLAG :=
 
 ORDERED_OBJS += \
 "./HeightandTail.obj" \
+"./interrupts.obj" \
 "./main.obj" \
+"./sendData.obj" \
+"./steup.obj" \
 "./tm4c123gh6pm_startup_ccs.obj" \
 "./utils/uartstdio.obj" \
 "./utils/ustdlib.obj" \
@@ -159,8 +162,8 @@ EmulatorFinal.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)$(BIN_OUTPUTS__QUOTED)
-	-$(RM) "HeightandTail.d" "main.d" "tm4c123gh6pm_startup_ccs.d" "utils\uartstdio.d" "utils\ustdlib.d" 
-	-$(RM) "HeightandTail.obj" "main.obj" "tm4c123gh6pm_startup_ccs.obj" "utils\uartstdio.obj" "utils\ustdlib.obj" 
+	-$(RM) "HeightandTail.d" "interrupts.d" "main.d" "sendData.d" "steup.d" "tm4c123gh6pm_startup_ccs.d" "utils\uartstdio.d" "utils\ustdlib.d" 
+	-$(RM) "HeightandTail.obj" "interrupts.obj" "main.obj" "sendData.obj" "steup.obj" "tm4c123gh6pm_startup_ccs.obj" "utils\uartstdio.obj" "utils\ustdlib.obj" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
