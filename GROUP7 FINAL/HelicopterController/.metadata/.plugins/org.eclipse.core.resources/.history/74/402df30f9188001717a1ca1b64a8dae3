@@ -1,0 +1,18 @@
+FREERTOS TASK
+
+	switch_task 	Poll switches and perform altitude/yaw tasks
+			Delay: 		20
+			Priority:	4
+			
+	
+	pwm_task	Check queue for message, modify pwm output.
+			Delay:		-
+			Priority:	2
+
+	adc_task	Read altitude ADC.
+			Delay:		10
+			Priority:	3
+
+	display_task	Display data on button push.
+			Delay:		-
+			Priority:	1

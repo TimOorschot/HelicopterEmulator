@@ -1,0 +1,165 @@
+//*****************************************************************************
+//
+// Yaw_task.c - A simple Yaw task to process the buttons.
+//
+// Copyright (c) 2012-2016 Texas Instruments Incorporated.  All rights reserved.
+// Software License Agreement
+// 
+// Texas Instruments (TI) is supplying this software for use solely and
+// exclusively on TI's microcontroller products. The software is owned by
+// TI and/or its suppliers, and is protected under applicable copyright
+// laws. You may not combine this software with "viral" open-source
+// software in order to form a larger program.
+// 
+// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
+// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
+// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
+// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+// DAMAGES, FOR ANY REASON WHATSOEVER.
+// 
+// This is part of revision 2.1.3.156 of the EK-TM4C123GXL Firmware Package.
+//
+//*****************************************************************************
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include "inc/hw_memmap.h"
+#include "inc/hw_types.h"
+#include "inc/hw_gpio.h"
+#include "driverlib/adc.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/gpio.h"
+#include "driverlib/rom.h"
+#include "driverlib/uart.h"
+#include "utils/uartstdio.h"
+#include "driverlib/pin_map.h"
+
+#include "driverlib/interrupt.h"
+#include "yaw_task.h"
+#include "switch_task.h"
+#include "pwm_task.h"
+#include "priorities.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+
+//*****************************************************************************
+//
+// The stack size for the yaw task.
+//
+//*****************************************************************************
+#define YAWTASKSTACKSIZE       256      // Stack size in words
+
+extern xQueueHandle  g_pPWMQueue;
+extern xQueueHandle  g_pDisplayQueue;
+extern xSemaphoreHandle g_pUARTSemaphore;
+
+
+//*****************************************************************************
+//
+// Global Direction
+//
+//****************************************************************************
+
+extern uint32_t g_Altitude[1];
+extern uint8_t g_Direction;
+extern uint8_t g_Yaw;
+uint8_t seqA, seqB;
+
+
+
+
+//*****************************************************************************
+//
+// This task reads the buttons' state and passes this information to YawTask.
+//
+//*****************************************************************************
+
+
+xSemaphoreHandle binary_sem;
+xQueueHandle queue_handle = NULL;
+
+static void
+one_sec_isr(void){
+//	xSemaphoreGiveFromISR(binary_sem, NULL);
+//	GPIOIntClear(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+	long currentState = GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+	xQueueSend(queue_handle, &currentState, portMAX_DELAY);
+	GPIOIntClear(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+}
+
+static void
+YawTask(void *pvParameters)
+{
+	long currentState;
+	while(1){
+		if(xQueueReceive(queue_handle, &currentState, portMAX_DELAY)){
+			UARTprintf("\n\n currentState %d \n\n", currentState);
+		}
+
+	}
+//		if(xSemaphoreTake(binary_sem, portMAX_DELAY)){
+//
+//			long yawList[16] = {0,1,-1,0,-1,0,0,1,1,0,0,-1,0,-1,1,0};
+//			long currentState = GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+//			UARTprintf("\n\n currentState %d \n\n", currentState);
+//
+//
+////			currentState = ((currentState & GPIO_PIN_0) | (currentState & GPIO_PIN_1));
+////			long index = currentState | prevState;
+////			g_Yaw += yawList[index];
+//
+//
+////			//if (g_Direction != ROM_GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_1))
+////					g_Yaw++;
+////			//g_Direction = ROM_GPIOPinRead(GPIO_PORTB_BASE, GPIO_PIN_1);
+////			xSemaphoreTake(g_pUARTSemaphore, portMAX_DELAY);
+////			UARTprintf("\n\n INTERRUPT %d \n\n", g_Yaw);
+//
+//			xSemaphoreGiveFromISR(g_pUARTSemaphore,NULL);
+//			GPIOIntClear(GPIO_PORTB_BASE, GPIO_PIN_0);
+
+		}
+	}
+}
+
+uint32_t
+YawTaskInit(void)
+{
+	GPIOIntRegister(GPIO_PORTB_BASE, one_sec_isr);
+
+	ROM_GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1 );
+	ROM_GPIOIntTypeSet(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_BOTH_EDGES);
+
+	ROM_IntMasterEnable();
+
+	GPIOIntEnable(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+	GPIOIntClear(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+
+	vSemaphoreCreateBinary(binary_sem);
+
+	queue_handle = xQueueCreate(10, sizeof(long));
+
+	if(xTaskCreate(YawTask, (const portCHAR *)"Yaw",
+				   YAWTASKSTACKSIZE, NULL, tskIDLE_PRIORITY +
+				   PRIORITY_YAW_TASK, NULL) != pdTRUE)
+	{
+		return(1);
+	}
+
+    //
+    // Success.
+    //
+    return(0);
+
+}
+
+
+
